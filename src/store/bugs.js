@@ -1,36 +1,108 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { createSelector } from "reselect";
-
+import { apiCallBegan } from "./api";
+import moment from "moment";
 // Combing the two functions createAction and createReducer into one
-let lastId = 0;
+// let lastId = 0;
 const slice = createSlice({
   name: "bugs",
-  initialState: [],
+  initialState: {
+    list: [],
+    loading: false,
+    lastFetch: null,
+  },
   reducers: {
     // actions => action handlers
+    bugsRequestFailed: (bugs, action) => {
+      bugs.loading = false;
+    },
+    bugsRequested: (bugs, action) => {
+      bugs.loading = true;
+    },
+
+    // bugs/bugsRecieved
+    bugsRecieved: (bugs, action) => {
+      bugs.list = action.payload;
+      bugs.loading = false;
+      bugs.lastFetch = Date.now();
+      // console.log(lastFetch);
+    },
+
     bugAssignedToUser: (bugs, action) => {
-      const { bugId, userId } = action.payload;
-      const index = bugs.findIndex((bug) => bug.id === bugId);
-      bugs[index].userId = userId;
+      const { id: bugId, userId } = action.payload;
+      const index = bugs.list.findIndex((bug) => bug.id === bugId);
+      bugs.list[index].userId = userId;
     },
+    // Command - event
+    // addBug - bugAdded
     bugAdded: (bugs, action) => {
-      bugs.push({
-        id: ++lastId,
-        description: action.payload.description,
-        resolved: false,
-      });
+      bugs.list.push(action.payload);
     },
+    //resloveBug(command) -  bugResolved (event)
     bugResolved: (bugs, action) => {
-      const index = bugs.findIndex((bug) => bug.id === action.payload.id);
-      bugs[index].resolved = true;
+      const index = bugs.list.findIndex((bug) => bug.id === action.payload.id);
+      bugs.list[index].resolved = true;
     },
   },
 });
 
 // console.log(slice);
 
-export const { bugAdded, bugResolved, bugAssignedToUser } = slice.actions;
+const {
+  bugAdded, //addBug - Notation of command to UI layer
+  bugResolved,
+  bugAssignedToUser,
+  bugsRecieved,
+  bugsRequested,
+  bugsRequestFailed,
+} = slice.actions;
 export default slice.reducer;
+
+// Action Creators
+
+// LoadBugs
+// ()=>{} signature function
+const url = "/bugs";
+export const loadBugs = () => (dispatch, getState) => {
+  const { lastFetch } = getState().entities.bugs;
+  const diffInMinutes = moment().diff(moment(lastFetch), "minutes");
+  if (diffInMinutes < 10) return;
+  console.log(lastFetch);
+  dispatch(
+    apiCallBegan({
+      url,
+      onStart: bugsRequested.type,
+      onSuccess: bugsRecieved.type,
+      onError: bugsRequestFailed.type,
+    })
+  );
+};
+
+export const addBug = (bug) =>
+  apiCallBegan({
+    url,
+    method: "post",
+    data: bug,
+    onSuccess: bugAdded.type,
+  });
+
+export const resolveBug = (id) =>
+  apiCallBegan({
+    // bugs
+    // PATCH/bugs/1
+    url: url + "/" + id,
+    method: "patch",
+    data: { resolved: true },
+    onSuccess: bugResolved.type,
+  });
+
+export const assignBugToUser = (bugId, userId) =>
+  apiCallBegan({
+    url: url + "/" + bugId,
+    method: "patch",
+    data: { userId },
+    onSuccess: bugAssignedToUser.type,
+  });
 
 // Selector
 // Memoizaton
@@ -46,6 +118,14 @@ export const getBugsByUser = (userId) =>
     (state) => state.entities.bugs,
     (bugs) => bugs.filter((bug) => bug.userId === userId)
   );
+
+// export const loadBugs = () =>
+//   apiCallBegan({
+//     url,
+//     onStart: bugsRequested.type,
+//     onSuccess: bugsRecieved.type,
+//     onError: bugsRequestFailed.type,
+//   });
 
 // Each Level, step wise, below for understanding
 

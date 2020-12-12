@@ -1,26 +1,53 @@
 import configureStore from "./store/configureStore";
-import {
-  bugAdded,
-  bugResolved,
-  bugAssignedToUser,
-  getUnreslovedBugs,
-  getBugsByUser,
-} from "./store/bugs";
-import { projectAdded } from "./store/projects";
-import { userAdded } from "./store/users";
-
+// import * as actions from "./store/api";
+// import {
+//   bugAdded,
+//   bugResolved,
+//   bugAssignedToUser,
+//   getUnreslovedBugs,
+//   getBugsByUser,
+// } from "./store/bugs";
+import { loadBugs, resolveBug, assignBugToUser } from "./store/bugs";
+import { addBug } from "./store/bugs";
+// import { projectAdded } from "./store/projects";
+// import { userAdded } from "./store/users";
 const store = configureStore();
 
-store.dispatch((dispatch, getState) => {
-  dispatch({ type: "bugRecieved", bugs: [1, 2, 3] });
-  console.log(getState());
-});
-store.dispatch({
-  type: "error",
-  payload: {
-    message: "An error occured.",
-  },
-});
+// store.dispatch((dispatch, getState) => {
+//   dispatch({ type: "bugRecieved", bugs: [1, 2, 3] });
+//   console.log(getState());
+// });
+// store.dispatch({
+//   type: "error",
+//   payload: {
+//     message: "An error occured.",
+//   },
+// });
+
+// UI Layer
+// functions in UI layer
+// store.dispatch(addBug({ decription: "a" }));
+store.dispatch(loadBugs());
+setTimeout(() => store.dispatch(assignBugToUser(1, 4)), 2000);
+
+// setTimeout(() => store.dispatch(resolveBug(1)), 2000);
+
+// functions not in UI layer, to much information
+// store.dispatch(
+//   actions.apiCallBegan({
+//     url: "/bugs",
+//     onSuccess: "bugs/bugsRecieved",
+// onError: actions.apiCallFailed,
+//   })
+// );
+// store.dispatch({
+//   type: "apiCallBegan", //api request
+//   payload: {
+//     url: "/bugs",
+//     onSuccess: "bugsRecieved",
+//     onError: "apiRequestFailed",
+//   },
+// });
 
 // store.subscribe(() => {
 //   console.log("Store changed!");
